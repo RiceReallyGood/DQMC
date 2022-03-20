@@ -1,0 +1,580 @@
+\documentclass[UTF8,cs4size]{ctexart}
+\usepackage[top =2.54cm ,bottom =2.54cm ,left =3.18cm ,right =3.18 cm]{ geometry}
+\usepackage{amsmath}
+\usepackage{color}
+\usepackage{graphicx}
+\graphicspath{{graphics/}}
+\bibliographystyle{plain}
+\def\ee{\mathrm e}
+\def\dd{\mathrm d}
+\def\rr{\mathbf r}
+\def\xx{\mathbf x}
+\def\kk{\mathbf k}
+\title{Hubbard Model(Fermion) 的 QMC}
+\author{}
+\date{}
+\begin{document}
+\maketitle
+\zihao{-4}
+首先我们考虑 Hubbard Model 的巨正则哈密顿量：
+\[
+    H=-t \sum_{<i,j>,\sigma} c^{\dag}_{i,\sigma}c_{j,\sigma} + U \sum_{i} n_{i\uparrow} n_{i\downarrow}
+    -\mu \sum_{i,\sigma} n_{i,\sigma}
+\]
+对应的 Hubbard Model 的巨配分函数为：
+\[
+    Z=\mathcal{T}r \  \ee^{-\beta H}   
+\]
+考虑到哈密顿量各项之间并不对易，我们要利用Suzuki-Trotter分解。Suzuki-Trotter分解利用到的事实就是：
+\[
+    \ee^{\Delta \tau (A+B)}=\ee^{\Delta \tau A} \ee^{\Delta \tau B} +O(\Delta \tau^2 [A,B])    
+\]
+Suzuki-Trotter分解即为：
+\[
+    \ee^{-\beta (K+V)}  = (\ee^{-\Delta \tau (K+V)})^M =(\ee^{-\Delta \tau K} \ee^{-\Delta \tau V})^M
+    +O(\Delta \tau^2)
+\]
+这与路径积分相似，将虚时$(0,\beta)$分成$M$段。
+对于哈密顿量中的相互作用项，我们将使用 Hubbard-Stratonovich 变换。其变换形式如下：
+\[
+    \ee^{-\Delta \tau U n_{\uparrow} n_{\downarrow}} =\frac{1}{2} \ee^{-\frac{\Delta \tau U}{2}n}
+    \sum_{s=\pm 1} \ee^{-sm\lambda} = \frac{1}{2} \sum_{s=\pm 1} \prod_{\sigma = \uparrow \downarrow}
+    \ee^{-\left(\sigma s \lambda + \frac{\Delta \tau U}{2}\right)n_{\sigma}}    
+\]
+其中$n=n_{\uparrow} + n_{\downarrow}$，$m=n_{\uparrow} - n_{\downarrow}$,$\lambda$的值满足下列方程
+\[
+    \cosh \lambda = \ee^{\Delta \tau U /2}    
+\]
+这个HS变换很容易验证，因为对于费米子系统上述算符的希尔伯特空间是四维的，我们只需要验证左边的算符与右边的算符
+作用在希尔伯特空间的基矢上得到相同的结果。\\
+\textcircled{1}$\left| n_{\uparrow}=0,n_{\downarrow}=0 \right>$
+\[
+    \begin{aligned}
+        lhs&=1\\
+        rhs&=\frac{1}{2}(1+1)=1
+    \end{aligned}    
+\]
+\textcircled{2}$\left| n_{\uparrow}=0,n_{\downarrow}=1 \right>$
+\[
+    \begin{aligned}
+        lhs&=1\\
+        rhs&=\frac{1}{2}\ee^{-\frac{\Delta \tau U}{2}}\left(\ee^{\lambda} + \ee^{-\lambda}\right)
+        =\ee^{-\frac{\Delta \tau U}{2}} \cosh \lambda =1
+    \end{aligned}    
+\]
+\textcircled{3}$\left| n_{\uparrow}=1,n_{\downarrow}=0 \right>$
+\[
+    \begin{aligned}
+        lhs&=1\\
+        rhs&=\frac{1}{2}\ee^{-\frac{\Delta \tau U}{2}}\left(\ee^{-\lambda} + \ee^{\lambda}\right)
+        =\ee^{-\frac{\Delta \tau U}{2}} \cosh \lambda =1
+    \end{aligned}    
+\]
+\textcircled{4}$\left| n_{\uparrow}=1,n_{\downarrow}=1 \right>$
+\[
+    \begin{aligned}
+        lhs&=\ee^{-\Delta \tau U}\\
+        rhs&=\frac{1}{2}\ee^{-\Delta \tau U}\left(1+1\right) = \ee^{-\Delta \tau U}
+    \end{aligned}    
+\]
+经过Hubbard-Stratonovich变换之后我们可以把配分函数写成如下形式：
+\[
+    Z=\left( \frac{1}{2}\right)^{L^d M} \mathop{\mathrm{Tr}} \limits_{\{s\}} \mathcal{T}r
+    \prod_{\sigma=\uparrow , \downarrow} \prod_{l=M}^{1} 
+    \ee^{-\Delta \tau \sum_{i,j} c^{\dag}_{i,\sigma} K_{ij} c_{j,\sigma}}
+    \ee^{-\Delta \tau \sum_{i,j} c^{\dag}_{i,\sigma} V^{\sigma}_{ij}(l) c_{j,\sigma}}
+\]
+其中
+\[
+    K_{ij}=
+    \left\{
+        \begin{aligned}
+            &-t &\text{if i and j are nearest neighbours}\\
+            &0  &\text{otherwise}
+        \end{aligned}
+    \right.   
+\]
+\[
+    V^{\sigma}_{ij}(l)=\left[\frac{1}{\Delta \tau} \sigma s_{i}(l) \lambda 
+        +\left(\frac{U}{2} - \mu\right) \right] \delta_{ij}
+\]
+利用\ref{bookproof}的命题三，我们将费米子算符的trace求出。则配分函数为：
+\[
+    Z=\left( \frac{1}{2}\right)^{L^d M} \mathop{\mathrm{Tr}} \limits_{\{s\}}
+    \prod_{\sigma=\uparrow , \downarrow}
+    \det\left[1+B^{\sigma}_{M} \cdots B^{\sigma}_{2} B^{\sigma}_{1} \right]
+\]
+其中：
+\[
+    B^{\sigma}_{l}=\ee^{-\Delta \tau K} \ee^{-\Delta \tau V^{\sigma}(l)}
+\]
+由于$V$矩阵是对角的，我们可以直接计算出$B$矩阵以及$B^{-1}$矩阵：
+\[
+    \begin{aligned}
+        \left[B ^ {\sigma}_{l}\right]_{ij} &= [\ee^{-\Delta \tau K}]_{ij}[\ee^{-\Delta \tau V^{\sigma}(l)}]_{jj}\\
+        &= [\ee^{-\Delta K}]_{ij} \ee^{-\Delta \tau
+            \left[\frac{\sigma s_{j}(l)\lambda}{\Delta \tau} + \left(\frac{U}{2} -\mu \right)\right]}
+    \end{aligned}
+\]
+\[
+    \begin{aligned}
+        \left\{\left[B ^ {\sigma}_{l}\right]^{-1}\right\}_{ij} &=
+            [\ee^{\Delta \tau V^{\sigma} (l)}]_{ii} [\ee^{\Delta K}]_{ij} \\
+        &=  \ee^{\Delta \tau
+        \left[\frac{\sigma s_{i}(l)\lambda}{\Delta \tau} + \left(\frac{U}{2} -\mu \right)\right]}
+        [\ee^{\Delta K}]_{ij}
+    \end{aligned}  
+\]
+定义
+\[
+    O^{\sigma}(\{s\})= 1+ B^{\sigma}_{M} \cdots B^{\sigma}_{2} B^{\sigma}_{1}
+\]
+则
+\[
+    \begin{aligned}
+    Z&=\left( \frac{1}{2}\right)^{L^d M} \mathop{\mathrm{Tr}} \limits_{\{s\}}
+    \det O^{\uparrow}(\{s\}) \cdot \det O^{\downarrow} (\{s\})\\
+    &= \mathop{\mathrm{Tr}} \limits_{\{s\}} \rho (\{s\})
+    \end{aligned}
+\]
+最后一个等号可以认为是辅助场的等效密度矩阵的定义。可以证明在half-filling$(\mu=\frac{U}{2}$)时,$\rho (\{s\})>0$。
+首先，我们引入电子空穴变换，即
+\[
+    \begin{aligned}
+        d_{i,\sigma} &= (-1)^{i} c^{\dag}_{i,\sigma}\\
+        d^{\dag}_{i,\sigma} &= (-1)^{i} c_{i,\sigma}
+    \end{aligned}   
+\]
+则 
+\[
+    \tilde{n}_{i,\sigma} =  d^{\dag}_{i,\sigma} d_{i,\sigma} =   c_{i,\sigma} c^{\dag}_{i,\sigma}
+    =1- n_{i,\sigma}
+\]
+从而
+\[
+    \begin{aligned}
+        \det O^{\uparrow}(\{s\}) &= \mathcal{T}r \prod_{l=M}^{1} 
+        \ee^{-\Delta \tau \sum_{i,j} c^{\dag}_{i} K_{ij} c_{j}}
+        \ee^{- \lambda \sum_{i} c^{\dag}_{i} s_{i}(l) c_{i}}\\
+        &=\mathcal{T}r \prod_{l=M}^{1} 
+        \ee^{-\Delta \tau \sum_{i,j} d^{\dag}_{i} K_{ij} d_{j}}
+        \ee^{- \lambda \sum_{i} s_{i}(l) (1-d^{\dag}_{i}d_{i})}\\
+        &=\mathcal{T}r \prod_{l=M}^{1} 
+        \ee^{-\Delta \tau \sum_{i,j} d^{\dag}_{i} K_{ij} d_{j}}
+        \ee^{ \lambda \sum_{i} s_{i}(l) d^{\dag}_{i}d_{i}} \ee^{-\lambda \sum_{i} s_{i}(l)}\\
+        &= \ee^{-\lambda \sum_{i,l} s_{i}(l)} \det O^{\downarrow} (\{s\})
+    \end{aligned}    
+\]
+故$\det O^{\uparrow}(\{s\}) \cdot \det O^{\downarrow} (\{s\}) > 0$。
+
+现在我们来考虑一些物理量的期待值：\\
+考虑算符$O_\sigma=\mathbf{c^{\dag}_{\sigma}} A \mathbf{c_{\sigma}}$
+\[
+    \left< O_\sigma(l) \right> = \frac{ \mathrm{Tr}[ \left< O_\sigma (l) \right>_{\{s\}} \rho(\{s\})]}
+    {\mathrm{Tr}[ \rho(\{s\})]} 
+\]
+\[
+    \begin{aligned}
+        \left< O_\sigma (l) \right>_{\{s\}} &=
+        \frac{\partial}{\partial \eta} \ln \mathrm{Tr} \left.\left[D_{M}^{\sigma} \cdots D_{l+1}^{\sigma} 
+        \ee^{\eta O_\sigma} D_{l}^{\sigma} \cdots D_{1}^{\sigma} \right] 
+        \right|_{\eta=0}\\
+        &=  \frac{\partial}{\partial \eta} \ln \det \left. \left[1+B_{M}^{\sigma} \cdots B_{l+1}^{\sigma} 
+        \ee^{\eta O_\sigma} B_{l}^{\sigma} \cdots B_{1}^{\sigma} \right] \right|_{\eta=0}\\
+        &=  \frac{\partial}{\partial \eta} \mathrm{Tr} \ln \left. \left[1+B_{M}^{\sigma} \cdots B_{l+1}^{\sigma} 
+        \ee^{\eta O_\sigma} B_{l}^{\sigma} \cdots B_{1}^{\sigma} \right] \right|_{\eta=0}\\
+        &=\mathrm{Tr} \left[B_{l}^{\sigma} \cdots B_{1}^{\sigma} \left(
+        1+B_{M}^{\sigma} \cdots  B_{1}^{\sigma}\right)^{-1} B_{M}^{\sigma} \cdots B_{l+1}^{\sigma} O_\sigma
+        \right]\\
+        &=\mathrm{Tr} \left[\left(1- \left(1+B_{l}^{\sigma} \cdots B_{1}^{\sigma}
+        B_{M}^{\sigma} \cdots  B_{l+1}^{\sigma} \right)^{-1} \right) O_\sigma\right]
+    \end{aligned}    
+\]
+上式用到了$B\left( 1 + A B \right)^{-1} A = 1 - \left( 1+ B A \right)^{-1}$如果$A,B$是是可交换的，
+那么这是显然的，事实上，对于$A,B$不对易的情况这也是对的：
+\[
+    \begin{aligned}
+          &B\left( 1 + A B \right)^{-1} A  \\ 
+        = &\left[ A^{-1} \left( 1 + A B \right) B^{-1} \right] ^{-1} \\
+        = &\left( A^{-1} B^{-1} + 1 \right)^{-1} \\
+        = &\left( A^{-1} B^{-1} + 1 \right)^{-1}
+            \left(A^{-1} B^{-1} + 1  - A^{-1} B^{-1} \right) \\
+        = &1 - \left[ BA\left( A^{-1} B^{-1} + 1 \right) \right]^{-1} \\
+        = &1 - \left( 1 + BA\right)^{-1}
+    \end{aligned}
+\]
+上上式中$D_{l}^{\sigma}=\ee^{-\Delta \tau \sum_{i,j} c^{\dag}_{i,\sigma} K_{ij} c_{j,\sigma}}
+\ee^{-\Delta \tau \sum_{i,j} c^{\dag}_{i,\sigma} V^{\sigma}_{ij}(l) c_{j,\sigma}}$。
+很容易可以验证
+\[
+    \left< c_{i,\sigma}(l) c^{\dag}_{j,\sigma}(l) \right>_{\{s\}} 
+    = \left[\left(1+B_{l}^{\sigma} \cdots B_{1}^{\sigma}
+    B_{M}^{\sigma} \cdots  B_{l+1}^{\sigma} \right)^{-1} \right]_{ij}
+\]
+接下来我们考虑$\left< c_{i,\sigma}(l_1) c^{\dag}_{j,\sigma}(l_2) \right>_{\{s\}}$，其中$l_1>l_2$
+\[
+    \begin{aligned}
+    \left< c_{i,\sigma}(l_1) c^{\dag}_{j,\sigma}(l_2) \right>_{\{s\}}
+    &=\frac{\mathrm{Tr} [D^{\sigma}_{M} \cdots D^{\sigma}_{l_1 +1} c_{i,\sigma}
+    D^{\sigma}_{l_1} \cdots D^{\sigma}_{l_2 +1} c^{\dag}_{j,\sigma} 
+    D^{\sigma}_{l_2} \cdots D^{\sigma}_{1}  ]}
+    {\mathrm{Tr} [D^{\sigma}_{M} \cdots D^{\sigma}_{1}]}\\
+    &=\frac{\mathrm{Tr} [D^{\sigma}_{M} \cdots D^{\sigma}_{l_2 +1}
+    (D^{\sigma}_{l_1} \cdots D^{\sigma}_{l_2 +1})^{-1} c_{i,\sigma}
+    D^{\sigma}_{l_1} \cdots D^{\sigma}_{l_2 +1} c^{\dag}_{j,\sigma} 
+    D^{\sigma}_{l_2} \cdots D^{\sigma}_{1}  ]}
+    {\mathrm{Tr} [D^{\sigma}_{M} \cdots D^{\sigma}_{1}]}
+    \end{aligned}
+\]
+考察
+\[
+    c_{i}(\tau) =\ee^{\tau \mathbf{c^{\dag}} A \mathbf{c}}  c_{i}  
+    \ee^{-\tau \mathbf{c^{\dag}} A \mathbf{c}}
+\]
+\[
+    \frac{\partial c_{i}}{\partial \tau}   =  \ee^{\tau \mathbf{c^{\dag}} A \mathbf{c}}
+    [\mathbf{c^{\dag}} A \mathbf{c},c_{i} ] \ee^{-\tau \mathbf{c^{\dag}} A \mathbf{c}}
+    = -\sum_{j} A_{ij} c_{j}(\tau)
+\]
+故
+\[
+    c_{i}(\tau) = \sum_{j} \left[\ee^{-A \tau}\right]_{ij} c_{j}
+\]
+故
+\[
+    (D^{\sigma}_{l_1} \cdots D^{\sigma}_{l_2 +1})^{-1} c_{i,\sigma}
+    D^{\sigma}_{l_1} \cdots D^{\sigma}_{l_2 +1}
+    = \sum_{k} [B^{\sigma}_{l_1} \cdots B^{\sigma}_{l_2 +1}]_{ik} c_{k,\sigma}
+\]
+从而
+\[
+    \begin{aligned}
+    \left< c_{i,\sigma}(l_1) c^{\dag}_{j,\sigma}(l_2) \right>_{\{s\}}
+    &=\sum_{k} [B^{\sigma}_{l_1} \cdots B^{\sigma}_{l_2 +1}]_{ik} 
+    \left< c_{k,\sigma}(l_1) c^{\dag}_{j,\sigma}(l_2) \right>_{\{s\}}\\
+    &=\left[B^{\sigma}_{l_1} \cdots B^{\sigma}_{l_2 +1}
+    \left(1+B_{l}^{\sigma} \cdots B_{1}^{\sigma}
+    B_{M}^{\sigma} \cdots  B_{l+1}^{\sigma} \right)^{-1}
+    \right]_{ij}
+    \end{aligned}
+\]
+现在考察翻转自旋的概率。假如我们试图翻转$l$时间片段$i$格点上的Ising自旋即$s_{i}(l) \rightarrow -s_{i}(l)$
+，这引起的变化为
+\[
+    V^{\sigma}_{ii}(l) =\frac{1}{\Delta \tau} \sigma \lambda s_{i}(l)
+    \rightarrow
+    \tilde{V}^{\sigma}_{ii}(l) = -\frac{1}{\Delta \tau} \sigma \lambda s_{i}(l)
+\]
+这将会导致$B^{\sigma}_{l} \rightarrow \tilde{B}^{\sigma}_{l} = B^{\sigma}_{l} \Delta^{\sigma}_{l}(i)$
+,其中$\Delta^{\sigma}_{l}(i)$的各个矩阵元为
+\[
+    [\Delta^{\sigma}_{l}(i)]_{jk}=
+    \left\{
+        \begin{aligned}
+            &0 &\text{if j$\neq$k} \\
+            &1 &\text{if j=k$\neq$i}\\
+            &\ee^{2\sigma \lambda s_{i}(l)} &\text{if j=k=i}
+        \end{aligned}
+    \right. 
+\]
+新旧构型的概率比为
+\[
+    r=\frac{\det O^{\uparrow}(\{s\}') \cdot \det O^{\downarrow} (\{s\}')}
+    {\det O^{\uparrow}(\{s\}) \cdot \det O^{\downarrow} (\{s\})}
+    =R_{\uparrow} R_{\downarrow}
+\]
+其中：
+\[
+    \begin{aligned}
+        R_{\sigma} &=\frac{\det O^{\sigma}(\{s\}')}{\det O^{\sigma}(\{s\})}\\
+        &=\frac{\det [1+B^{\sigma}_{M} \cdots B^{\sigma}_{l+1} B^{\sigma}_{l} 
+        \Delta^{\sigma}_{l}(i) B^{\sigma}_{l-1} \cdots B^{\sigma}_{1}]}
+        {\det [1+B^{\sigma}_{M} \cdots B^{\sigma}_{1}]}\\
+        &=\frac{\det [1+A^{\sigma} (l) \Delta^{\sigma}_{l}(i)]}
+        {\det [1+ A^{\sigma}(l)]}\\
+        &=\det \left[\left[1+ \left([g^{\sigma}(l)]^{-1} -1 \right) \Delta^{\sigma}_{l}(i)
+        \right] g^{\sigma} (l)\right]\\
+        &=\det [[g^{\sigma} (l)]^{-1} \left[g^{\sigma} (l) +\left( 1 - g^{\sigma}(l) \right)\Delta^{\sigma}_{l}(i) \right] g^{\sigma} (l)]\\
+        &=\det[1+(1-g^{\sigma}(l))(\Delta^{\sigma}_{l}(i)-1)]\\
+        &=1+(1-[g^{\sigma}(l)]_{ii})(\ee^{2\sigma \lambda s_{i}(l)}-1)
+    \end{aligned}
+\]
+其中$A^{\sigma}(l)$和$g^{\sigma}(l)$的定义为：
+\[
+    \begin{aligned}
+        A^{\sigma} (l) &= B^{\sigma}_{l-1} \cdots B^{\sigma}_{1} B^{\sigma}_{M} \cdots B^{\sigma}_{l}\\
+        g^{\sigma} (l) &= [1+A^{\sigma}(l)]^{-1}
+    \end{aligned}    
+\]
+继续考虑$g$矩阵的更新：
+\[
+    \begin{aligned}
+        \left[ \tilde{g}^{\sigma} (l) \right]^{-1} &= 1 + \tilde{A}^{\sigma}(l) \\
+        &= 1 + A^{\sigma}(l) \Delta^{\sigma}_{l}(i) + A^{\sigma}(l) - A^{\sigma}(l) \\
+        &= 1 + A^{\sigma}(l) + A^{\sigma}(l) \left(\Delta^{\sigma}_{l} (i) - 1 \right) \\
+        &= \left[g^{\sigma}(l) \right]^{-1} 
+            + \left[ \left(g^{\sigma}(l) \right)^{-1} -1 \right]
+            \left(\Delta^{\sigma}_{l} (i) - 1 \right)\\
+    \end{aligned}
+\]
+故：
+\[
+    \tilde{g}^{\sigma} (l) 
+    =   \left[1 + 
+            \left( 1 - g^{\sigma} (l) \right) \left(\Delta^{\sigma}_{l} (i) - 1 \right)
+        \right] ^{-1}
+        g^{\sigma}(l)
+\]
+我们定义矩阵
+\[
+    \Gamma_{l}^{\sigma} (l) \equiv \Delta^{\sigma}_{l} (i) - 1
+\]
+注意这个矩阵只有一个矩阵元$[\Gamma_{l}^{\sigma}(i)]_{ii} = \ee^{2\sigma \lambda s_{i}(l)}-1$
+不为零，其余矩阵元都为零。我们定义$\gamma_{i}^{\sigma}(l) \equiv [\Gamma_{l}^{\sigma}(i)]_{ii}$
+则：
+\[
+    \tilde{g}^{\sigma} (l) 
+    =   \left[1 + 
+            \left( 1 - g^{\sigma} (l) \right) \Gamma_{l}^{\sigma} (l)
+        \right] ^{-1}
+        g^{\sigma}(l)
+\]
+这样$g$矩阵的更新就可以通过一次矩阵求逆和一次矩阵乘法实现
+(矩阵求逆和矩阵乘法的时间复杂度大致是$O(n^3)$其中$n$为矩阵的维度),但是考虑到$\Gamma$矩阵的稀疏性,事实上
+我们是可以用手求出上式中矩阵的逆的，并且通过逆矩阵的稀疏性我们也可以手求出两个矩阵的乘法的。现在定义
+\[
+    M = 1 + \left( 1 - g^{\sigma} (l) \right) \Gamma_{l}^{\sigma} (i)
+\]
+由于$\Gamma$矩阵只有一个元素不为零，所以$M$矩阵只有对角元以及第$i$列不为零，根据逆矩阵的基本求法
+\[
+    [A^{-1}]_{ij} = \frac{(-1)^{j + i}A_{ji}}{|A|}
+\]
+我们只需要求出$M$矩阵的行列式，以及非零的代数余子式就可以了。$M$的行列式很简单：
+$|M| = 1 + (1 - g_{ii}^{\sigma} (l)) \gamma_{l}^{\sigma}(i)$
+$M$非零的代数余子式可以分为三种:1.
+$(-1)^{j + j} M_{jj} = 1 + (1 - g_{ii}^{\sigma} (l)) \gamma_{l}^{\sigma}(i) = |M|
+    \quad \mathrm{for} j \neq i$
+2.
+$(-1)^{i + j} M_{ij} = -(\delta_{ji} - g_{ji}^{\sigma}(l)) \gamma^{\sigma}_{l}(i)
+\quad \mathrm{for} j \neq i$ 3. $(-1)^{i+i}M_{ii} = 1$ 
+综上：
+\[
+    \begin{aligned}
+        (-1)^{j + k} M_{jk}=& |M|\delta_{jk} - |M|\delta_{ji}\delta_{ki}\\
+            & - \delta_{ji} (\delta_{ki} - g_{ki}^{\sigma}(l)) \gamma_{l}^{\sigma}(i)\\
+            & + \delta_{ji} \delta_{ki}(1 - g_{ii}^{\sigma}(l)) \gamma_{l}^{\sigma}(i)\\
+            &+\delta_{ji}\delta_{ki}\\
+            =& |M|\delta_{jk} - \delta_{ji} (\delta_{ki} - g_{ki}^{\sigma}(l)) \gamma_{l}^{\sigma}(i)
+    \end{aligned}
+\]
+所以
+\[
+    [M^{-1}]_{jk} = \delta_{jk} - \frac{\delta_{ki}(\delta_{ji} 
+    - g_{ji}^{\sigma}(l))\gamma_{l}^{\sigma}(i)}{|M|}   
+\]
+所以
+\[
+    [\tilde{g}^{\sigma} (l)]_{jk} = g_{jk}^{\sigma}(i)
+    - \frac{(\delta_{ji} 
+    - g_{ji}^{\sigma}(l))\gamma_{l}^{\sigma}(i) g_{ik}^{\sigma}(l)}{|M|}
+\]
+\appendix
+\section{需要用到的一些命题的证明}
+\label{bookproof}
+首先我们给出一些符号约定。对于一个有$N_s$个单粒子态的系统我们把产生湮灭算符写成矢量的形式：
+\[
+    \mathbf{c}=
+        \left(
+            \begin{aligned}
+                &c_{1}\\
+                &c_{2}\\
+                &\vdots\\
+                &c_{N_s}
+            \end{aligned}
+        \right),
+    \qquad
+    \mathbf{c^{\dag}}=
+        \left(
+            c^{\dag}_{1} \quad c^{\dag}_{2} \quad \cdots \quad c^{\dag}_{N_s}
+        \right)
+\]
+下文中出现的$P$矩阵，是$N_s\times N_p$维的矩阵。%且$\sum_{i}P^{*}_{in}P_{im}=\delta_{nm}$。
+
+\noindent 命题一：
+\[
+    \ee^{\mathbf{c^{\dag}}T \mathbf{c}} \prod_{n=1}^{N_p}\left( \mathbf{c^{\dag}} P\right)_{n}
+        \left|0\right>
+    =\prod_{n=1}^{N_p}\left( \mathbf{c^{\dag}} \ee^{T} P\right)_{n}\left|0\right>
+\]
+其中 $T$ 是厄米矩阵。
+
+\noindent 证：厄米矩阵总是可以写成如下的形式：$T=U \Lambda U^{\dag}$，其中$\Lambda$是对角矩阵，$U$是酉矩阵。
+我们假设$\boldsymbol{\gamma}^{\dag}=\mathbf{c^{\dag}}U$，我们可以很容易验证$\gamma_n$满足费米子算符的
+反对易关系，$\{\gamma_m,\gamma_n\}=\{\gamma^{\dag}_m,\gamma^{\dag}_n\}=0$,$\{\gamma_m,\gamma^{\dag}_n\}=\delta_{mn}$。
+\[
+    \begin{aligned}
+        &\ee^{\mathbf{c^{\dag}}T \mathbf{c}} \prod_{n=1}^{N_p}\left( \mathbf{c^{\dag}} P\right)_{n}
+            \left|0\right>
+        =\ee^{\boldsymbol{\gamma^{\dag}} \Lambda \boldsymbol{\gamma}} \prod_{n=1}^{N_p}
+            \left(\boldsymbol{\gamma^{\dag}} U^{\dag} P\right)_n  \left|0\right>\\
+        =&\sum_{y_1,y_2, \cdots, y_{N_p} }\ee^{\sum_{i}\gamma^{\dag}_i \lambda_i \gamma_i}  \gamma^{\dag}_{y_1} \gamma^{\dag}_{y_2}
+        \cdots \gamma^{\dag}_{y_{N_p}} \left|0\right> \left(U^{\dag} P\right)_{y_1 1}
+        \left(U^{\dag} P\right)_{y_2 2} \cdots \left(U^{\dag} P\right)_{y_{N_p} N_p}\\
+        =&\sum_{y_1,y_2, \cdots, y_{N_p} } \gamma^{\dag}_{y_1} \ee^{\lambda_{y_1}} \gamma^{\dag}_{y_2}
+        \ee^{\lambda_{y_2}}\cdots \gamma^{\dag}_{y_{N_p}} \ee^{\lambda_{y_{N_p}}} \left|0\right> \left(U^{\dag} P\right)_{y_1 1}
+        \left(U^{\dag} P\right)_{y_2 2} \cdots \left(U^{\dag} P\right)_{y_{N_p} N_p}\\
+        =&\prod_{n=1}^{N_p} \left(\boldsymbol{\gamma^{\dag}}\ee^{\Lambda} U^{\dag} P\right)_n \left|0\right>
+        =\prod_{n=1}^{N_p} \left(\mathbf{c^{\dag}} U \ee^{\Lambda} U^{\dag} P\right)_n \left|0\right>
+        =\prod_{n=1}^{N_p}\left( \mathbf{c^{\dag}} \ee^{T} P\right)_{n}\left|0\right>
+    \end{aligned}
+\]
+命题二：令
+\[
+    \begin{aligned}
+        \left| \Psi \right> &= \prod_{n=1}^{N_p}\left( \mathbf{c^{\dag}} P\right)_{n} \left|0\right> \\
+        \left| \tilde{\Psi} \right> &= \prod_{n=1}^{N_p}\left( \mathbf{c^{\dag}} \tilde{P}\right)_{n} \left|0\right>
+    \end{aligned} 
+\]
+则
+\[
+    \left< \Psi \left| \tilde{\Psi} \right. \right> = \det\left( P^{\dag} \tilde{P}\right)    
+\]
+证：
+\[
+    \begin{aligned}
+        \left< \Psi \left| \tilde{\Psi} \right. \right>
+        &=\left< 0 \right| \prod_{n=N_p}^{1} \left( P^{\dag} \mathbf{c} \right)_n
+            \prod_{n'=1}^{N_p} \left( \mathbf{c^{\dag}} \tilde{P}\right)_{n} \left|0\right>\\
+        &=\sum_{\mbox{\tiny$\begin{array}{c}
+            x_1,x_2,\cdots,x_{N_p}\\
+            y_1,y_2,\cdots,y_{N_p}
+           \end{array}$}}
+        \left< 0 \right| c_{x_{N_p}} \cdots c_{x_1} c^{\dag}_{y_1} \cdots c^{\dag}_{y_{N_p}} \left| 0 \right>\\
+        &\times  \left(P^{\dag}\right)_{N_p x_{N_p}} \cdots \left(P^{\dag}\right)_{1 x_{1}}
+        \tilde{P}_{y_1 1} \cdots \tilde{P}_{y_{N_p} N_p}\\
+        &=\sum_{x_1,x_2,\cdots,x_{N_p},\pi}(-1)^{\pi} 
+        \left(P^{\dag}\right)_{N_p x_{N_p}} \cdots \left(P^{\dag}\right)_{1 x_{1}}
+        \tilde{P}_{x_{\pi(1)} 1} \cdots \tilde{P}_{x_{\pi(N_p)} N_p}\\
+        &=\sum_{x_1,x_2,\cdots,x_{N_p},\pi}(-1)^{\pi^{-1}} 
+        \left(P^{\dag}\right)_{N_p x_{N_p}} \cdots \left(P^{\dag}\right)_{1 x_{1}}
+        \tilde{P}_{x_1 \pi^{-1}(1)} \cdots \tilde{P}_{x_{N_p} \pi^{-1}(N_p)}\\
+        &=\sum_{\pi} (-1)^\pi \left( P^{\dag} \tilde{P}\right)_{1,\pi(1)} 
+        \left( P^{\dag} \tilde{P}\right)_{2,\pi(2)}   \cdots
+        \left( P^{\dag} \tilde{P}\right)_{N_p,\pi(N_p)} \\
+        &=\det(P^{\dag} \tilde{P})
+    \end{aligned}    
+\]
+命题三：
+\[
+    \mathrm{Tr} \left[ \ee^{\mathbf{c^{\dag}} T_1 \mathbf{c}} 
+    \ee^{\mathbf{c^{\dag}} T_2 \mathbf{c}} \cdots \ee^{\mathbf{c^{\dag}} T_n \mathbf{c}} \right]
+    = \det \left[ 1+ \ee^{T_1} \ee^{T_2} \cdots \ee^{T_n}\right] 
+\]
+证：令$U=\ee^{\mathbf{c^{\dag}} T_1 \mathbf{c}} 
+\ee^{\mathbf{c^{\dag}} T_2 \mathbf{c}} \cdots \ee^{\mathbf{c^{\dag}} T_n \mathbf{c}}$,
+$B=\ee^{T_1} \ee^{T_2} \cdots \ee^{T_n}$
+\[
+    \begin{aligned}
+        &\det(1+B)\\
+        =&\sum_{\pi} (-1)^{\pi} \left(B_{1,\pi(1)} + \delta_{1,\pi(1)}\right)
+        \left(B_{2,\pi(2)} + \delta_{2,\pi(2)}\right) \cdots
+        \left(B_{N_s,\pi(N_s)} + \delta_{N_s,\pi(N_s)}\right)\\
+        =&\sum_{\pi} (-1)^{\pi} \delta_{1,\pi(1)} \delta_{2,\pi(2)} \cdots \delta_{N_s,\pi(N_s)}\\
+        &+\sum_{x}\sum_{\pi} (-1)^{\pi} B_{x,\pi(x)} \delta_{1,\pi(1)} \delta_{2,\pi(2)}  \cdots  
+        \overbrace{\delta_{x,\pi(x)}} \cdots \delta_{N_s,\pi(N_s)}\\
+        &+\sum_{x<y} \sum_{\pi} (-1)^{\pi}  B_{x,\pi(x)}  B_{y,\pi(y)} \delta_{1,\pi(1)}   \cdots  
+        \overbrace{\delta_{x,\pi(x)}} \cdots \overbrace{\delta_{y,\pi(y)}} \cdots
+        \delta_{N_s,\pi(N_s)}\\
+        &+\sum_{x<y<z} \sum_{\pi} (-1)^{\pi} B_{x,\pi(x)}  B_{y,\pi(y)} B_{z,\pi(z)} \delta_{1,\pi(1)}   \cdots  
+        \overbrace{\delta_{x,\pi(x)}} \cdots \overbrace{\delta_{y,\pi(y)}} \cdots
+        \overbrace{\delta_{z,\pi(z)}} \cdots \delta_{N_s,\pi(N_s)}\\
+        &+\cdots
+    \end{aligned}    
+\]
+其中$\overbrace{\delta_{x,\pi(x)}}$代表这个连乘中没有这一项。
+考察前几个项：
+\[
+    \sum_{\pi} (-1)^{\pi} \delta_{1,\pi(1)} \delta_{2,\pi(2)} \cdots \delta_{N_s,\pi(N_s)}=1 
+\]
+\[
+    \begin{aligned}
+        &\sum_{\pi} (-1)^{\pi} B_{x,\pi(x)} \delta_{1,\pi(1)} \delta_{2,\pi(2)}  \cdots  
+        \overbrace{\delta_{x,\pi(x)}} \cdots \delta_{N_s,\pi(N_s)}\\
+        =&B_{x,x}\\
+        =&\det\left(P(x)^{\dag}BP(x)\right)\\
+        =&\left< 0 \right| \left(P(x)^{\dag} \mathbf{c}\right) \left(\mathbf{c^{\dag}}B P(x)\right)
+        \left| 0 \right>\\
+        =&\left< 0 \right| \left(P(x)^{\dag} \mathbf{c}\right) U \left(\mathbf{c^{\dag}} P(x))\right)
+        \left| 0 \right>\\
+        =&\left< 0 \right| c_{x} U c^{\dag}_{x} \left| 0 \right>
+    \end{aligned}
+\]
+\[
+    \begin{aligned}
+        &\sum_{\pi} (-1)^{\pi}  B_{x,\pi(x)}  B_{y,\pi(y)} \delta_{1,\pi(1)}   \cdots  
+        \overbrace{\delta_{x,\pi(x)}} \cdots \overbrace{\delta_{y,\pi(y)}} \cdots
+        \delta_{N_s,\pi(N_s)}\\
+        =&B_{x,x}B_{y,y}-B{x,y}B{y,x}\\
+        =&\det\left(P(x,y)^{\dag}BP(x,y)\right)\\
+        =&\left< 0 \right| \prod_{n=2}^{1}\left(P(x,y)^{\dag} \mathbf{c}\right)_n 
+        \prod_{n'=1}^{2}\left(\mathbf{c^{\dag}}B P(x,y)\right)_{n'} \left| 0 \right>\\
+        =&\left< 0 \right| \prod_{n=2}^{1} \left(P(x,y)^{\dag} \mathbf{c}\right)_{n} U 
+        \prod_{n'=1}^{2}\left(\mathbf{c^{\dag}} P(x,y))\right)_{n'} \left| 0 \right>\\
+        =&\left< 0 \right| c_{y} c_{x} U c^{\dag}_{x} c^{\dag}_{y} \left| 0 \right>
+    \end{aligned}    
+\]
+上面推导利用了定理一和定理二。其中$P(x)$代表$N_s\times 1$的矩阵，其中只有第$x$行的矩阵元为1，其余矩阵元为零。
+$P(x,y)$代表$N_s\times 2$的矩阵，第一列中只有第$x$行的矩阵元为1，其余矩阵元为零，第二列中只有第$y$行的矩阵元为1，其余矩阵元为零。
+重复上述的讨论我们可以得到：
+\[
+    \begin{aligned}
+        &\det(1+B)\\
+        =&1+\sum_{x} \left< 0 \right| c_{x} U c^{\dag}_{x} \left| 0 \right>
+        +\sum_{x<y} \left< 0 \right| c_{y} c_{x} U c^{\dag}_{x} c^{\dag}_{y} \left| 0 \right>\\
+        &+\sum_{x<y<z} \left< 0 \right| c_{z} c_{y} c_{x} U c^{\dag}_{x} c^{\dag}_{y} c^{\dag}_{z} \left| 0 \right>
+        +\cdots\\
+        =&\mathrm{Tr}[U]
+    \end{aligned}    
+\]
+即
+\[
+    \mathrm{Tr} \left[ \ee^{\mathbf{c^{\dag}} T_1 \mathbf{c}} 
+    \ee^{\mathbf{c^{\dag}} T_2 \mathbf{c}} \cdots \ee^{\mathbf{c^{\dag}} T_n \mathbf{c}} \right]
+    = \det \left[ 1+ \ee^{T_1} \ee^{T_2} \cdots \ee^{T_n}\right] 
+\]
+命题三得证。
+\iffalse
+\section{附录\ref{bookproof}中命题三的另一种证明}
+首先需要指出需要用到的一个定理(见Lie Groups, Lie Algebras, and Representations定理2.10)：
+\begin{quote}
+    任意可逆的$n \times n$矩阵都可以表示为一些$n \times n$矩阵$X$的指数$\ee^{X}$。
+\end{quote}
+我们先证明一个命题：
+\[
+    \left< i \right| \ee^{\mathbf{c^{\dag}} T \mathbf{c}} \left| j \right>
+    =\left[ \ee^{T} \right]_{ij}
+\]
+证：将$T$对角化即$T=U \Lambda U^{\dag}$ 其中$U$是酉矩阵，$\Lambda$是对角矩阵且$\Lambda_{ii}=\lambda_{i}$，我们令
+$\boldsymbol{\gamma^{\dag}}=\mathbf{c^{\dag}} U$,$\boldsymbol{\gamma}=U^{\dag} \mathbf{c}$。
+假设$\left| i \right> = c^{\dag}_{i} \left| 0 \right>$,
+$\left | \alpha \right> = \gamma^{\dag}_{\alpha} \left| 0 \right>$,则
+\[
+    \left < i \right| \left. \alpha \right> =\left < i \right|  \gamma^{\dag}_{\alpha} \left| 0 \right>
+    = \sum_{j} \left < i \right| c^{\dag}_{j} U_{j \alpha}  \left| 0 \right>
+    = U_{i\alpha}
+\]
+进而
+\[
+    \begin{aligned}
+        &\left< i \right| \ee^{\mathbf{c^{\dag}} T \mathbf{c}} \left| j \right>
+        =\left< i \right| \ee^{\sum_{\alpha} \lambda_{\alpha} \gamma^{\dag}_{\alpha} \gamma_{\alpha}} \left| j \right>\\
+        =&\sum_{\beta_1,\beta_2} \left< i \left| \beta_1 \right. \right>
+        \left< \beta_1 \right| \ee^{\sum_{\alpha} \lambda_{\alpha} \gamma^{\dag}_{\alpha} \gamma_{\alpha}} 
+        \left| \beta_2 \right>  \left<\beta_2 \left| j \right. \right> \\
+        =&\sum_{\beta_1,\beta_2} U_{i\beta_1} \ee^{\lambda_{\beta_2}} \delta_{\beta_1 \beta_2}
+        U^{*}_{j\beta_2}\\
+        =&\left[ U \ee^{\Lambda} U^{\dag} \right]_{ij} = \left[ \ee^{T} \right]_{ij}
+    \end{aligned}    
+\]
+\fi
+\end{document}

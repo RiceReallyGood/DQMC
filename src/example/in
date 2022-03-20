@@ -1,0 +1,36 @@
+# ==========================
+# IO
+# ==========================
+ofile = out4                  # Output file name
+
+
+# ==========================
+# Hubbard model
+# ==========================
+model = 1D Ring Hubbard      # Only support "1D Ring Hubbard" or "2D Square Hubbard" now
+n     = 8                    # Number of sites in each direction
+t     = 1                    # Nearest neighbor Hopping energy
+tp    = 0                    # Next nearest neighbor Hopping energy, ignored in 1D model
+tpp   = 0                    # Next Next nearest neighbor Hopping energy, ignored in 1D model
+U     = 4                    # Onsite energy
+mu    = 0                    # Chemical potential
+dtau  = 0.05                  # Length of time slice
+M     = 20                   # Number of time slices
+
+
+# ==========================
+# Measurements
+# ==========================
+nWarm    = 10000              # Number of warmup sweeps
+nBins    = 32                # Number of data bins
+BinSize  = 10000              # Number of Measurements of each bin
+MeasFreq = 10                 # Frequency of measurement
+
+
+# ==========================
+# numerical stability
+# ==========================
+nWrap    = 5                 # Number of Wrap update can be performed between Recomputations
+npack    = 5                 # Max nubmer of sequential Multiplication of Matrix B.
+                             # It MUST be a divisor of M, in current version.
+toldiff  = 1e-8              # Tolerable error of G Matrix, during simulation
